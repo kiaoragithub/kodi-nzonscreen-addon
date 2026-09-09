@@ -1,0 +1,47 @@
+name: Playback bug
+description: Report a title that is missing, incorrect or does not play
+title: "[Playback] "
+labels:
+  - bug
+body:
+  - type: input
+    id: title
+    attributes:
+      label: NZ On Screen title
+      placeholder: Exact title shown in Kodi
+    validations:
+      required: true
+  - type: input
+    id: url
+    attributes:
+      label: NZ On Screen page URL
+      placeholder: https://www.nzonscreen.com/...
+    validations:
+      required: true
+  - type: input
+    id: kodi
+    attributes:
+      label: Kodi version and operating system
+      placeholder: Kodi 21.2 on Android TV
+    validations:
+      required: true
+  - type: input
+    id: addon
+    attributes:
+      label: Add-on version
+      placeholder: 1.0.3
+    validations:
+      required: true
+  - type: textarea
+    id: behavior
+    attributes:
+      label: What happened?
+      description: Explain what you clicked, what you expected and what played or appeared instead.
+    validations:
+      required: true
+  - type: textarea
+    id: log
+    attributes:
+      label: Relevant Kodi log lines
+      description: Remove personal information, tokens and unrelated log content.
+      render: text
