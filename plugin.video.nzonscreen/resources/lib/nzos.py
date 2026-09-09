@@ -8,7 +8,7 @@ import urllib.request
 from html.parser import HTMLParser
 
 BASE = 'https://www.nzonscreen.com'
-UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.0'
+UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.0.2'
 
 
 class NZOSError(Exception):
@@ -125,18 +125,29 @@ def page_links(path):
 def extract_videos(source):
     # Next.js serialises the same fields with escaped quotes in its RSC payload.
     text = source.replace('\\"', '"')
-    pattern = re.compile(r'"name":"([^"\\]*(?:\\.[^"\\]*)*)".{0,900}?"video_id":"?(\d+)"?.{0,180}?"account_id":"?(\d+)"?', re.S)
+    # account_id used to follow video_id, but NZ On Screen no longer includes it
+    # in current page payloads. Match the stable video navigation object instead.
+    navigation = re.compile(
+        r'"navigation":\{[^{}]*?"navigation_type":"(?:video|page)"[^{}]*?'
+        r'"video_id":"?(\d+)"?[^{}]*?\}', re.S)
+    name = re.compile(r'"name":"([^"\\]*(?:\\.[^"\\]*)*)"')
     out, seen = [], set()
-    for description, video_id, account_id in pattern.findall(text):
+    previous = 0
+    for match in navigation.finditer(text):
+        video_id = match.group(1)
         if video_id in seen:
+            previous = match.end()
             continue
+        names = name.findall(text[previous:match.start()])
+        description = names[-1] if names else 'Play video'
         try:
             description = json.loads('"' + description + '"')
         except Exception:
             description = re.sub('<[^>]+>', '', description)
-        out.append({'video_id': video_id, 'account_id': account_id,
+        out.append({'video_id': video_id,
                     'label': html.unescape(description).strip() or 'Play video'})
         seen.add(video_id)
+        previous = match.end()
     if not out:
         ids = re.findall(r'"videoId":"(\d+)".*?"accountId":"(\d+)"', text)
         for video_id, account_id in ids:
@@ -161,7 +172,7 @@ def filters():
 
 def playback(video_id):
     payload = {'eventType': 'play', 'platform': 'web', 'name': 'NZOS Kodi Add-on',
-               'appVersion': '1.0.1',
+               'appVersion': '1.0.2',
                'device': {'deviceId': 'Kodi', 'deviceType': 'tv', 'userAgent': UA}}
     raw, _ = request('/api/v3/user/playback/' + str(video_id), payload)
     result = json.loads(raw.decode('utf-8'))
