@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addons>
+  <addon id="plugin.video.nzonscreen" name="NZ On Screen" version="1.0.0" provider-name="Community">
+    <requires>
+      <import addon="xbmc.python" version="3.0.1"/>
+      <import addon="inputstream.adaptive" version="21.4.4" optional="true"/>
+    </requires>
+    <extension point="xbmc.python.pluginsource" library="addon.py"><provides>video</provides></extension>
+    <extension point="xbmc.addon.metadata">
+      <summary lang="en_GB">Watch NZ On Screen's public video catalogue</summary>
+      <description lang="en_GB">Browse television, film, series, music videos, collections, interviews and profiles from NZ On Screen. Includes search, nested pages, artwork, metadata and Widevine DASH playback.</description>
+      <disclaimer lang="en_GB">Unofficial community add-on. Content, availability, regional restrictions and rights are controlled by NZ On Screen. Rentals and account-only content are not bypassed.</disclaimer>
+      <platform>all</platform><license>GPL-3.0-or-later</license>
+      <website>https://www.nzonscreen.com/</website><source>https://www.nzonscreen.com/</source>
+      <assets><icon>resources/icon.png</icon><fanart>resources/fanart.png</fanart></assets>
+    </extension>
+  </addon>
+  <addon id="repository.nzonscreen" name="NZ On Screen Add-on Repository" version="1.0.0" provider-name="Community">
+    <extension point="xbmc.addon.repository" name="NZ On Screen Add-on Repository">
+      <dir>
+        <info compressed="false">https://kiaoragithub.github.io/kodi-nzonscreen-addon/addons.xml</info>
+        <checksum>https://kiaoragithub.github.io/kodi-nzonscreen-addon/addons.xml.md5</checksum>
+        <datadir zip="true">https://kiaoragithub.github.io/kodi-nzonscreen-addon/zips/</datadir>
+      </dir>
+    </extension>
+    <extension point="xbmc.addon.metadata">
+      <summary lang="en_GB">Install and update the NZ On Screen Kodi add-on</summary>
+      <description lang="en_GB">Repository for the unofficial NZ On Screen video add-on.</description>
+      <disclaimer lang="en_GB">Unofficial community repository. Content rights and availability remain controlled by NZ On Screen.</disclaimer>
+      <platform>all</platform><license>GPL-3.0-or-later</license><assets><icon>icon.png</icon></assets>
+    </extension>
+  </addon>
+</addons>
