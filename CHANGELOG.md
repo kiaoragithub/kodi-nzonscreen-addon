@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.4 — 2026-09-09
+
+- Keep search results at a persistent Kodi container URL.
+- Return to the same search-results list after playback instead of reopening search.
+- Preserve the selected query and results page across playback.
+
 ## 1.0.3 — 2026-09-09
 
 - Validate extracted video IDs against their parent NZ On Screen page.

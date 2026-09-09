@@ -96,7 +96,10 @@ def play_page(path):
 def search_dialog():
     query = xbmcgui.Dialog().input('Search NZ On Screen', type=xbmcgui.INPUT_ALPHANUM)
     if query:
-        show_search(query, 1)
+        # Store the query in the container URL so Kodi returns to the same
+        # results list when playback finishes instead of reopening search.
+        xbmc.executebuiltin('Container.Update(%s,replace)' %
+                            plugin_url('results', query=query))
     else:
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 

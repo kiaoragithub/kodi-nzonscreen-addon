@@ -8,7 +8,7 @@ import urllib.request
 from html.parser import HTMLParser
 
 BASE = 'https://www.nzonscreen.com'
-UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.0.3'
+UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.0.4'
 
 
 class NZOSError(Exception):
@@ -206,7 +206,7 @@ def filters():
 
 def playback(video_id):
     payload = {'eventType': 'play', 'platform': 'web', 'name': 'NZOS Kodi Add-on',
-               'appVersion': '1.0.3',
+               'appVersion': '1.0.4',
                'device': {'deviceId': 'Kodi', 'deviceType': 'tv', 'userAgent': UA}}
     raw, _ = request('/api/v3/user/playback/' + str(video_id), payload)
     result = json.loads(raw.decode('utf-8'))
