@@ -1,5 +1,7 @@
 import html
+import http.cookiejar
 import json
+import os
 import re
 import ssl
 import urllib.error
@@ -8,7 +10,33 @@ import urllib.request
 from html.parser import HTMLParser
 
 BASE = 'https://www.nzonscreen.com'
-UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.0.7'
+UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.1.0'
+
+_cookies = None
+_opener = urllib.request.build_opener()
+
+
+def configure_session(cookie_file):
+    """Use a persistent website session without ever storing the password."""
+    global _cookies, _opener
+    _cookies = http.cookiejar.MozillaCookieJar(cookie_file)
+    try:
+        _cookies.load(ignore_discard=True, ignore_expires=False)
+    except (FileNotFoundError, http.cookiejar.LoadError, OSError):
+        pass
+    _opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(_cookies))
+
+
+def _save_session():
+    if _cookies is not None:
+        directory = os.path.dirname(_cookies.filename)
+        if directory:
+            os.makedirs(directory, exist_ok=True)
+        _cookies.save(ignore_discard=True, ignore_expires=False)
+        try:
+            os.chmod(_cookies.filename, 0o600)
+        except OSError:
+            pass
 
 
 class NZOSError(Exception):
@@ -24,9 +52,11 @@ def request(path, data=None, headers=None, timeout=25):
     if headers:
         hdr.update(headers)
     try:
-        with urllib.request.urlopen(urllib.request.Request(url, body, hdr), timeout=timeout,
-                                    context=ssl.create_default_context()) as response:
-            return response.read(), response.headers.get('Content-Type', '')
+        request_obj = urllib.request.Request(url, body, hdr)
+        with _opener.open(request_obj, timeout=timeout) as response:
+            result = response.read(), response.headers.get('Content-Type', '')
+        _save_session()
+        return result
     except urllib.error.HTTPError as exc:
         detail = exc.read().decode('utf-8', 'replace')[:300]
         raise NZOSError('NZ On Screen returned HTTP %s: %s' % (exc.code, detail))
@@ -44,6 +74,75 @@ def get_json(path, params=None):
 def get_html(path):
     raw, _ = request(path)
     return raw.decode('utf-8', 'replace')
+
+
+def login(email, password):
+    csrf = get_json('/api/v3/auth/csrf').get('csrf_token', '')
+    raw, _ = request('/api/v3/auth/login', {'email': email, 'password': password},
+                     {'X-CSRFToken': csrf} if csrf else None)
+    _save_session()
+    return json.loads(raw.decode('utf-8')) if raw else {}
+
+
+def logout():
+    csrf = get_json('/api/v3/auth/csrf').get('csrf_token', '')
+    request('/api/v3/auth/logout', {}, {'X-CSRFToken': csrf} if csrf else None)
+    if _cookies is not None:
+        _cookies.clear()
+        _save_session()
+
+
+def current_user():
+    return get_json('/api/v3/user/me')
+
+
+def my_list(page_size=100):
+    return get_json('/api/v3/user/my-list/', {'pageSize': page_size})
+
+
+def add_to_my_list(item_id, item_type):
+    return _account_write('/api/v3/user/my-list/', 'POST',
+                          {'itemId': item_id, 'itemType': item_type})
+
+
+def remove_from_my_list(item_id):
+    return _account_write('/api/v3/user/my-list/' + str(item_id), 'DELETE')
+
+
+def watching_progress(video_id):
+    try:
+        return get_json('/api/v3/user/continue-watching/' + str(video_id))
+    except NZOSError as exc:
+        if 'HTTP 404' in str(exc):
+            return {}
+        raise
+
+
+def update_watching_progress(video_id, position, session_id):
+    return _account_write('/api/v3/user/continue-watching/' + str(video_id), 'PUT',
+                          {'position': int(position), 'sessionId': session_id})
+
+
+def entitlement(video_id):
+    return get_json('/api/v3/user/entitlements/' + str(video_id))
+
+
+def _account_write(path, method, data=None):
+    csrf = get_json('/api/v3/auth/csrf').get('csrf_token', '')
+    url = BASE + path
+    body = json.dumps(data).encode('utf-8') if data is not None else None
+    headers = {'User-Agent': UA, 'Accept': 'application/json',
+               'Content-Type': 'application/json'}
+    if csrf:
+        headers['X-CSRFToken'] = csrf
+    try:
+        with _opener.open(urllib.request.Request(url, body, headers, method=method), timeout=25) as response:
+            raw = response.read()
+        _save_session()
+        return json.loads(raw.decode('utf-8')) if raw else {}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode('utf-8', 'replace')[:300]
+        raise NZOSError('NZ On Screen returned HTTP %s: %s' % (exc.code, detail))
 
 
 class LinkParser(HTMLParser):
@@ -206,7 +305,7 @@ def filters():
 
 def playback(video_id):
     payload = {'eventType': 'play', 'platform': 'web', 'name': 'NZOS Kodi Add-on',
-               'appVersion': '1.0.7',
+               'appVersion': '1.1.0',
                'device': {'deviceId': 'Kodi', 'deviceType': 'tv', 'userAgent': UA}}
     raw, _ = request('/api/v3/user/playback/' + str(video_id), payload)
     result = json.loads(raw.decode('utf-8'))
@@ -227,6 +326,7 @@ def playback(video_id):
     if not dash:
         raise NZOSError('No Kodi-compatible Widevine DASH stream was returned for this title.')
     return {'manifest': dash[0], 'license': dash[1], 'title': media.get('name', ''),
+            'session_id': result.get('sessionId') or '',
             'plot': media.get('long_description') or media.get('description') or '',
             'poster': media.get('poster') or media.get('thumbnail') or '',
             'duration': int((media.get('duration') or 0) / 1000),

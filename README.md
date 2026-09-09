@@ -3,7 +3,7 @@
 [![Kodi 21 Omega](https://img.shields.io/badge/Kodi-21%20Omega-17B2E7)](https://kodi.tv/)
 [![Python 3](https://img.shields.io/badge/Python-3-3776AB)](https://www.python.org/)
 [![Tests](https://github.com/kiaoragithub/kodi-nzonscreen-addon/actions/workflows/validate.yml/badge.svg)](https://github.com/kiaoragithub/kodi-nzonscreen-addon/actions/workflows/validate.yml)
-[![Version](https://img.shields.io/badge/version-1.0.7-brightgreen)](https://github.com/kiaoragithub/kodi-nzonscreen-addon)
+[![Version](https://img.shields.io/badge/version-1.1.0-brightgreen)](https://github.com/kiaoragithub/kodi-nzonscreen-addon)
 
 ![NZ On Screen for Kodi](resources/fanart.png)
 
@@ -20,6 +20,9 @@ An unofficial Kodi video add-on for browsing and playing the public catalogue at
 - Show available metadata, artwork and genuine subtitle/caption tracks
 - Retrieve short-lived playback tokens only when playback starts
 - Use encrypted MPEG-DASH/Widevine through Kodi InputStream Adaptive
+- Sign in without saving the account password
+- Browse the NZ On Screen watchlist and use authenticated NZOS+ rentals
+- Resume viewing progress across Kodi and the NZ On Screen website
 
 ## Recommended installation — automatic updates
 
@@ -32,7 +35,7 @@ Installing through the repository allows Kodi to receive future add-on updates a
 
 ## Direct installation
 
-Download [`NZ-On-Screen-Kodi-1.0.7.zip`](https://github.com/kiaoragithub/kodi-nzonscreen-addon/raw/main/NZ-On-Screen-Kodi-1.0.7.zip),
+Download [`NZ-On-Screen-Kodi-1.1.0.zip`](https://github.com/kiaoragithub/kodi-nzonscreen-addon/raw/main/NZ-On-Screen-Kodi-1.1.0.zip),
 then select **Settings → Add-ons → Install from zip file** in Kodi. Direct installation works,
 but installing the repository first is recommended for automatic updates.
 

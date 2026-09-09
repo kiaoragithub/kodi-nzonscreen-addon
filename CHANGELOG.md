@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.0 — 2026-09-09
+
+- Add session-only NZ On Screen account sign-in and sign-out.
+- Add My watchlist and authenticated NZOS+ rental playback.
+- Read website resume positions and synchronize playback progress every 15 seconds.
+- Use session-only login by default and never handle card details inside Kodi.
+- Add an optional Save password Yes/No setting, disabled by default with a security warning.
+- Keep rental checkout, transaction management and account security on nzonscreen.com.
+
 ## 1.0.7 — 2026-09-09
 
 - Keep a stable DASH video representation from playback startup.

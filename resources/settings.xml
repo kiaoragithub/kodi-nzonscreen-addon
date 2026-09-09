@@ -3,6 +3,9 @@
   <section id="plugin.video.nzonscreen">
     <category id="general" label="General">
       <setting id="show_unavailable" type="boolean" label="Show unavailable and rental titles" default="true"/>
+      <setting id="save_password" type="boolean" label="Save NZ On Screen password on this device" default="false"/>
+      <setting id="account_email" type="string" label="Saved account email" default=""/>
+      <setting id="account_password" type="string" label="Saved account password" default="" option="hidden"/>
     </category>
   </section>
 </settings>

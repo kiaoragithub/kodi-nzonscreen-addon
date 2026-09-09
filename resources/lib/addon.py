@@ -1,3 +1,4 @@
+import os
 import sys
 import urllib.parse
 
@@ -5,12 +6,14 @@ import xbmc
 import xbmcaddon
 import xbmcgui
 import xbmcplugin
+import xbmcvfs
 
 from . import nzos
 
 HANDLE = int(sys.argv[1])
 BASE_URL = sys.argv[0]
 ADDON = xbmcaddon.Addon()
+SESSION_FILE = os.path.join(xbmcvfs.translatePath(ADDON.getAddonInfo('profile')), 'session.cookies')
 
 ROOT = [
     ('Featured & latest', '/'),
@@ -48,11 +51,102 @@ def item(label, url, folder=True, playable=False, art=None, info=None, context=N
 
 def root():
     item('Search', plugin_url('search'), True)
+    item('My NZ On Screen account', plugin_url('account'), True)
     item('Browse by category, genre or decade', plugin_url('filters'), True)
     for label, path in ROOT:
         item(label, plugin_url('page', path=path), True)
     xbmcplugin.setContent(HANDLE, 'videos')
     xbmcplugin.endOfDirectory(HANDLE)
+
+
+def account_menu():
+    try:
+        user = nzos.current_user()
+    except Exception:
+        item('Sign in', plugin_url('login'), False)
+        item('Create account on nzonscreen.com',
+             plugin_url('website', url='https://www.nzonscreen.com/signup/'), False)
+        xbmcplugin.endOfDirectory(HANDLE)
+        return
+    name = user.get('display_name') or user.get('name') or user.get('email') or 'Signed in'
+    item('Signed in as ' + str(name), '', False)
+    item('My watchlist', plugin_url('watchlist'), True)
+    item('NZOS+ rentals and catalogue', plugin_url('page', path='/nzos/'), True)
+    item('Transaction history on nzonscreen.com',
+         plugin_url('website', url='https://www.nzonscreen.com/account/'), False)
+    item('Sign out', plugin_url('logout'), False)
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def login_dialog():
+    save_password = ADDON.getSetting('save_password') == 'true'
+    saved_email = ADDON.getSetting('account_email') if save_password else ''
+    saved_password = ADDON.getSetting('account_password') if save_password else ''
+    email = xbmcgui.Dialog().input('NZ On Screen email', defaultt=saved_email,
+                                   type=xbmcgui.INPUT_ALPHANUM)
+    if not email:
+        return
+    hide = getattr(xbmcgui, 'ALPHANUM_HIDE_INPUT', 0)
+    password = xbmcgui.Dialog().input('NZ On Screen password', defaultt=saved_password,
+                                      type=xbmcgui.INPUT_ALPHANUM, option=hide)
+    if not password:
+        return
+    nzos.login(email.strip(), password)
+    keep = xbmcgui.Dialog().yesno(
+        'Save NZ On Screen password?',
+        'Saving makes future sign-ins easier, but stores the password locally on this Kodi device.')
+    ADDON.setSetting('save_password', 'true' if keep else 'false')
+    ADDON.setSetting('account_email', email.strip() if keep else '')
+    ADDON.setSetting('account_password', password if keep else '')
+    xbmcgui.Dialog().notification('NZ On Screen', 'Signed in', xbmcgui.NOTIFICATION_INFO, 4000)
+    xbmc.executebuiltin('Container.Refresh')
+
+
+def logout_account():
+    nzos.logout()
+    xbmcgui.Dialog().notification('NZ On Screen', 'Signed out', xbmcgui.NOTIFICATION_INFO, 4000)
+    xbmc.executebuiltin('Container.Refresh')
+
+
+def _account_result(entry):
+    if not isinstance(entry, dict):
+        return None
+    nested = entry.get('item') or entry.get('content') or entry.get('page') or entry
+    if not isinstance(nested, dict):
+        nested = entry
+    result = dict(nested)
+    result.setdefault('title', entry.get('title') or entry.get('displayName') or entry.get('name'))
+    result.setdefault('html_url', entry.get('html_url') or entry.get('url') or entry.get('path'))
+    result.setdefault('image', entry.get('image') or entry.get('thumbnail'))
+    return result
+
+
+def show_watchlist():
+    data = nzos.my_list()
+    entries = data.get('items') if isinstance(data, dict) else data
+    for entry in entries or []:
+        result = _account_result(entry)
+        if result:
+            result['_watchlist_id'] = entry.get('itemId') or result.get('itemId')
+            search_result_to_item(result)
+    xbmcplugin.setContent(HANDLE, 'videos')
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def change_my_list(item_id, item_type='', remove=False):
+    if remove:
+        nzos.remove_from_my_list(item_id)
+        message = 'Removed from watchlist'
+    else:
+        nzos.add_to_my_list(item_id, item_type)
+        message = 'Added to watchlist'
+    xbmcgui.Dialog().notification('NZ On Screen', message, xbmcgui.NOTIFICATION_INFO, 3500)
+    xbmc.executebuiltin('Container.Refresh')
+
+
+def website_notice(url):
+    xbmcgui.Dialog().ok('Continue on NZ On Screen',
+                        'For security, complete this account or payment action in a browser:\n' + url)
 
 
 def classify(path):
@@ -132,7 +226,19 @@ def search_result_to_item(result):
     if image: image = urllib.parse.urljoin(nzos.BASE + '/', image)
     if not path: return
     action = classify(path)
-    item(label, plugin_url(action, path=path), action == 'page', action == 'playpage', image)
+    context = None
+    item_id = result.get('id') or result.get('itemId')
+    item_type = result.get('content_type') or result.get('itemType') or result.get('type')
+    watchlist_id = result.get('_watchlist_id')
+    if watchlist_id:
+        context = [('Remove from NZ On Screen watchlist',
+                    'RunPlugin(%s)' % plugin_url('removewatchlist', item_id=watchlist_id))]
+    elif item_id and item_type:
+        context = [('Add to NZ On Screen watchlist',
+                    'RunPlugin(%s)' % plugin_url('addwatchlist', item_id=item_id,
+                                                  item_type=item_type))]
+    item(label, plugin_url(action, path=path), action == 'page', action == 'playpage', image,
+         context=context)
 
 
 def show_search(query='', page=1, category='', genre='', decade='', sort=''):
@@ -193,16 +299,35 @@ def play(video_id, clip_label=''):
     tag.setTitle(title)
     tag.setPlot(media['plot'])
     tag.setDuration(media['duration'])
+    try:
+        progress = nzos.watching_progress(video_id)
+        position = int(progress.get('position') or 0)
+        if position > 0 and position < media['duration'] - 10:
+            tag.setResumePoint(position, media['duration'])
+            li.setProperty('StartOffset', str(position))
+    except Exception:
+        pass
+    window = xbmcgui.Window(10000)
+    window.setProperty('NZOS.VideoId', str(video_id))
+    window.setProperty('NZOS.SessionId', media.get('session_id', ''))
     if media['subtitles']:
         li.setSubtitles(media['subtitles'])
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
 
 
 def run():
+    nzos.configure_session(SESSION_FILE)
     params = dict(urllib.parse.parse_qsl(sys.argv[2][1:] if len(sys.argv) > 2 else ''))
     action = params.get('action', 'root')
     try:
         if action == 'root': root()
+        elif action == 'account': account_menu()
+        elif action == 'login': login_dialog()
+        elif action == 'logout': logout_account()
+        elif action == 'watchlist': show_watchlist()
+        elif action == 'addwatchlist': change_my_list(params['item_id'], params.get('item_type', ''))
+        elif action == 'removewatchlist': change_my_list(params['item_id'], remove=True)
+        elif action == 'website': website_notice(params['url'])
         elif action == 'page': show_page(params.get('path', '/'))
         elif action == 'playpage': play_page(params['path'])
         elif action == 'playall': play_all(nzos.page_links(params['path'])['videos'])

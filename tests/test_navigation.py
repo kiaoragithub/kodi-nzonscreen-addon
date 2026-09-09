@@ -9,7 +9,7 @@ class SearchNavigationTests(unittest.TestCase):
     def setUp(self):
         self.original_argv = sys.argv[:]
         self.original_modules = {name: sys.modules.get(name) for name in
-                                 ('xbmc', 'xbmcaddon', 'xbmcgui', 'xbmcplugin')}
+                                 ('xbmc', 'xbmcaddon', 'xbmcgui', 'xbmcplugin', 'xbmcvfs')}
 
         xbmc = types.ModuleType('xbmc')
         xbmc.executebuiltin = MagicMock()
@@ -22,7 +22,10 @@ class SearchNavigationTests(unittest.TestCase):
         xbmc.Player = MagicMock(return_value=self.player)
 
         xbmcaddon = types.ModuleType('xbmcaddon')
-        xbmcaddon.Addon = MagicMock(return_value=object())
+        addon_settings = MagicMock()
+        addon_settings.getAddonInfo.return_value = '/tmp/plugin.video.nzonscreen/'
+        addon_settings.getSetting.return_value = 'false'
+        xbmcaddon.Addon = MagicMock(return_value=addon_settings)
 
         xbmcgui = types.ModuleType('xbmcgui')
         xbmcgui.INPUT_ALPHANUM = 0
@@ -31,13 +34,18 @@ class SearchNavigationTests(unittest.TestCase):
         self.dialog = dialog
         xbmcgui.Dialog = MagicMock(return_value=dialog)
         xbmcgui.ListItem = MagicMock()
+        xbmcgui.Window = MagicMock()
 
         xbmcplugin = types.ModuleType('xbmcplugin')
         xbmcplugin.endOfDirectory = MagicMock()
         xbmcplugin.setResolvedUrl = MagicMock()
 
+        xbmcvfs = types.ModuleType('xbmcvfs')
+        xbmcvfs.translatePath = lambda path: path
+
         sys.modules.update({'xbmc': xbmc, 'xbmcaddon': xbmcaddon,
-                            'xbmcgui': xbmcgui, 'xbmcplugin': xbmcplugin})
+                            'xbmcgui': xbmcgui, 'xbmcplugin': xbmcplugin,
+                            'xbmcvfs': xbmcvfs})
         sys.argv = ['plugin://plugin.video.nzonscreen', '7', '']
         sys.modules.pop('resources.lib.addon', None)
         self.addon = importlib.import_module('resources.lib.addon')
@@ -100,6 +108,7 @@ class SearchNavigationTests(unittest.TestCase):
             'title': 'Programme', 'plot': '', 'poster': '',
             'duration': 60, 'subtitles': [],
         })
+        self.addon.nzos.watching_progress = MagicMock(return_value={})
 
         self.addon.play('101')
 
