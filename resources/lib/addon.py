@@ -87,10 +87,24 @@ def play_page(path):
     if len(data['videos']) == 1:
         play(data['videos'][0]['video_id'], data['videos'][0]['label'])
         return
-    labels = [x['label'] for x in data['videos']]
+    labels = ['Play all parts'] + [x['label'] for x in data['videos']]
     selected = xbmcgui.Dialog().select(data['title'] or 'Choose video', labels)
-    if selected >= 0:
-        play(data['videos'][selected]['video_id'], data['videos'][selected]['label'])
+    if selected == 0:
+        play_all(data['videos'])
+    elif selected > 0:
+        video = data['videos'][selected - 1]
+        play(video['video_id'], video['label'])
+
+
+def play_all(videos):
+    playlist = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
+    playlist.clear()
+    for video in videos:
+        url = plugin_url('play', video_id=video['video_id'], clip_label=video['label'])
+        li = xbmcgui.ListItem(label=video['label'])
+        li.setProperty('IsPlayable', 'true')
+        playlist.add(url, li)
+    xbmc.Player().play(playlist)
 
 
 def search_dialog():

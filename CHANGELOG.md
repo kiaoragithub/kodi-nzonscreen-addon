@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.5 — 2026-09-09
+
+- Add a Play all parts option to every page containing multiple video clips.
+- Queue naturally ordered programme parts in a Kodi video playlist.
+- Keep individual trailer, excerpt, part and credits selection available.
+- Return to the originating page or results list after the playlist finishes.
+
 ## 1.0.4 — 2026-09-09
 
 - Keep search results at a persistent Kodi container URL.
