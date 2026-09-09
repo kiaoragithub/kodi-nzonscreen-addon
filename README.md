@@ -3,7 +3,7 @@
 [![Kodi 21 Omega](https://img.shields.io/badge/Kodi-21%20Omega-17B2E7)](https://kodi.tv/)
 [![Python 3](https://img.shields.io/badge/Python-3-3776AB)](https://www.python.org/)
 [![Tests](https://github.com/kiaoragithub/kodi-nzonscreen-addon/actions/workflows/validate.yml/badge.svg)](https://github.com/kiaoragithub/kodi-nzonscreen-addon/actions/workflows/validate.yml)
-[![Version](https://img.shields.io/badge/version-1.0.5-brightgreen)](https://github.com/kiaoragithub/kodi-nzonscreen-addon)
+[![Version](https://img.shields.io/badge/version-1.0.6-brightgreen)](https://github.com/kiaoragithub/kodi-nzonscreen-addon)
 
 ![NZ On Screen for Kodi](resources/fanart.png)
 
@@ -32,7 +32,7 @@ Installing through the repository allows Kodi to receive future add-on updates a
 
 ## Direct installation
 
-Download [`NZ-On-Screen-Kodi-1.0.5.zip`](https://github.com/kiaoragithub/kodi-nzonscreen-addon/raw/main/NZ-On-Screen-Kodi-1.0.5.zip),
+Download [`NZ-On-Screen-Kodi-1.0.6.zip`](https://github.com/kiaoragithub/kodi-nzonscreen-addon/raw/main/NZ-On-Screen-Kodi-1.0.6.zip),
 then select **Settings → Add-ons → Install from zip file** in Kodi. Direct installation works,
 but installing the repository first is recommended for automatic updates.
 

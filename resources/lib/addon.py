@@ -90,7 +90,12 @@ def play_page(path):
     labels = ['Play all parts'] + [x['label'] for x in data['videos']]
     selected = xbmcgui.Dialog().select(data['title'] or 'Choose video', labels)
     if selected == 0:
-        play_all(data['videos'])
+        # This page was opened as a playable item, so Kodi is currently waiting
+        # for setResolvedUrl(). Starting Player.play() in that resolver can crash
+        # Kodi on some platforms. End the resolver and start the playlist from a
+        # separate, non-resolver plugin invocation instead.
+        xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+        xbmc.executebuiltin('RunPlugin(%s)' % plugin_url('playall', path=path))
     elif selected > 0:
         video = data['videos'][selected - 1]
         play(video['video_id'], video['label'])
@@ -110,10 +115,9 @@ def play_all(videos):
 def search_dialog():
     query = xbmcgui.Dialog().input('Search NZ On Screen', type=xbmcgui.INPUT_ALPHANUM)
     if query:
-        # Store the query in the container URL so Kodi returns to the same
-        # results list when playback finishes instead of reopening search.
-        xbmc.executebuiltin('Container.Update(%s,replace)' %
-                            plugin_url('results', query=query))
+        # Render into the current directory invocation. Container.Update with
+        # replace returns to the add-on root on some Kodi platforms.
+        show_search(query, 1)
     else:
         xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
 
@@ -196,6 +200,7 @@ def run():
         if action == 'root': root()
         elif action == 'page': show_page(params.get('path', '/'))
         elif action == 'playpage': play_page(params['path'])
+        elif action == 'playall': play_all(nzos.page_links(params['path'])['videos'])
         elif action == 'play': play(params['video_id'], params.get('clip_label', ''))
         elif action == 'search': search_dialog()
         elif action == 'filters': show_filters()

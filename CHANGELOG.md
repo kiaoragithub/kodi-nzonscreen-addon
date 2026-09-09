@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.6 — 2026-09-09
+
+- Fix Search returning to the add-on root after the on-screen keyboard closes.
+- Render entered search terms directly into a Kodi results listing.
+- Start Play all parts outside the active playable-item resolver to prevent Kodi crashes.
+- Preserve direct single-video playback and ordered multi-part playlists.
+
 ## 1.0.5 — 2026-09-09
 
 - Add a Play all parts option to every page containing multiple video clips.

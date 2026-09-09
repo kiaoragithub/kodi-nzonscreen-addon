@@ -33,6 +33,7 @@ class SearchNavigationTests(unittest.TestCase):
 
         xbmcplugin = types.ModuleType('xbmcplugin')
         xbmcplugin.endOfDirectory = MagicMock()
+        xbmcplugin.setResolvedUrl = MagicMock()
 
         sys.modules.update({'xbmc': xbmc, 'xbmcaddon': xbmcaddon,
                             'xbmcgui': xbmcgui, 'xbmcplugin': xbmcplugin})
@@ -50,12 +51,12 @@ class SearchNavigationTests(unittest.TestCase):
             else:
                 sys.modules[name] = module
 
-    def test_search_uses_persistent_results_container(self):
+    def test_search_renders_results_without_container_redirect(self):
+        self.addon.show_search = MagicMock()
         self.addon.search_dialog()
 
-        self.xbmc.executebuiltin.assert_called_once_with(
-            'Container.Update(plugin://plugin.video.nzonscreen?'
-            'query=Howard+Morrison&action=results,replace)')
+        self.addon.show_search.assert_called_once_with('Howard Morrison', 1)
+        self.xbmc.executebuiltin.assert_not_called()
 
     def test_play_all_queues_every_clip_in_order(self):
         videos = [
@@ -83,13 +84,13 @@ class SearchNavigationTests(unittest.TestCase):
         self.addon.nzos.page_links = MagicMock(return_value={
             'title': 'Programme', 'videos': videos, 'links': []})
         self.dialog.select.return_value = 0
-        self.addon.play_all = MagicMock()
-
         self.addon.play_page('/videos/programme/')
 
         self.dialog.select.assert_called_once_with(
             'Programme', ['Play all parts', 'Part one', 'Part two'])
-        self.addon.play_all.assert_called_once_with(videos)
+        self.xbmc.executebuiltin.assert_called_once_with(
+            'RunPlugin(plugin://plugin.video.nzonscreen?'
+            'path=%2Fvideos%2Fprogramme%2F&action=playall)')
 
 
 if __name__ == '__main__':
