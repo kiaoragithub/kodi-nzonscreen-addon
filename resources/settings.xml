@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<settings version="1">
+  <section id="plugin.video.nzonscreen">
+    <category id="general" label="General">
+      <setting id="show_unavailable" type="boolean" label="Show unavailable and rental titles" default="true"/>
+    </category>
+  </section>
+</settings>
