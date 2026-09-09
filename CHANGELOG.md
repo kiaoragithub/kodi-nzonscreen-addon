@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.1 — 2026-09-09
+
+- Replace the installed add-on icon with the supplied green NZ On Screen artwork.
+- Add clearer public project, installation, download, support and release links.
+- Publish synchronized direct-install and automatic-update repository packages.
+
 ## 1.1.0 — 2026-09-09
 
 - Add session-only NZ On Screen account sign-in and sign-out.
