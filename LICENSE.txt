@@ -1,0 +1,4 @@
+This add-on is licensed under the GNU General Public License v3.0 or later.
+
+It is an unofficial community client. NZ On Screen names, artwork and content remain
+the property of their respective owners. This software does not grant content rights.

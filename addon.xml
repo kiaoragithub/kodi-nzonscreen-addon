@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<addon id="plugin.video.nzonscreen" name="NZ On Screen" version="1.0.0" provider-name="Community">
+  <requires>
+    <import addon="xbmc.python" version="3.0.1"/>
+    <import addon="inputstream.adaptive" version="21.4.4" optional="true"/>
+  </requires>
+  <extension point="xbmc.python.pluginsource" library="addon.py">
+    <provides>video</provides>
+  </extension>
+  <extension point="xbmc.addon.metadata">
+    <summary lang="en_GB">Watch NZ On Screen's public video catalogue</summary>
+    <description lang="en_GB">Browse television, film, series, music videos, collections, interviews and profiles from NZ On Screen. Includes search, nested pages, artwork, metadata and Widevine DASH playback.</description>
+    <disclaimer lang="en_GB">Unofficial community add-on. Content, availability, regional restrictions and rights are controlled by NZ On Screen. Rentals and account-only content are not bypassed.</disclaimer>
+    <platform>all</platform>
+    <license>GPL-3.0-or-later</license>
+    <website>https://www.nzonscreen.com/</website>
+    <source>https://www.nzonscreen.com/</source>
+    <assets>
+      <icon>resources/icon.png</icon>
+      <fanart>resources/fanart.png</fanart>
+    </assets>
+  </extension>
+</addon>
