@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.7 — 2026-09-09
+
+- Keep a stable DASH video representation from playback startup.
+- Prevent the brief audio mute caused by a startup representation resync on affected Kodi devices.
+- Preserve existing Search, direct playback and Play all parts behaviour.
+
 ## 1.0.6 — 2026-09-09
 
 - Fix Search returning to the add-on root after the on-screen keyboard closes.

@@ -178,6 +178,11 @@ def play(video_id, clip_label=''):
     li.setMimeType('application/dash+xml')
     li.setProperty('inputstream', 'inputstream.adaptive')
     li.setProperty('inputstream.adaptive.manifest_type', 'mpd')
+    # NZOS DASH manifests offer several video representations but a single
+    # audio representation. Keeping the chosen video representation fixed
+    # avoids a startup quality switch that can make Kodi briefly resync/mute
+    # the audio on some Android/HDMI devices.
+    li.setProperty('inputstream.adaptive.stream_selection_type', 'fixed-res')
     li.setProperty('inputstream.adaptive.license_type', 'com.widevine.alpha')
     li.setProperty('inputstream.adaptive.license_key', media['license'])
     li.setArt({'poster': media['poster'], 'thumb': media['poster']})

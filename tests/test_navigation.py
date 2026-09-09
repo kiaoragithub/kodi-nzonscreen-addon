@@ -13,6 +13,7 @@ class SearchNavigationTests(unittest.TestCase):
 
         xbmc = types.ModuleType('xbmc')
         xbmc.executebuiltin = MagicMock()
+        xbmc.getCondVisibility = MagicMock(return_value=True)
         xbmc.LOGERROR = 4
         xbmc.PLAYLIST_VIDEO = 1
         self.playlist = MagicMock()
@@ -91,6 +92,20 @@ class SearchNavigationTests(unittest.TestCase):
         self.xbmc.executebuiltin.assert_called_once_with(
             'RunPlugin(plugin://plugin.video.nzonscreen?'
             'path=%2Fvideos%2Fprogramme%2F&action=playall)')
+
+    def test_playback_uses_stable_representation_to_avoid_audio_resync(self):
+        self.addon.nzos.playback = MagicMock(return_value={
+            'manifest': 'https://media.example/video.mpd',
+            'license': 'https://license.example/widevine',
+            'title': 'Programme', 'plot': '', 'poster': '',
+            'duration': 60, 'subtitles': [],
+        })
+
+        self.addon.play('101')
+
+        list_item = sys.modules['xbmcgui'].ListItem.return_value
+        list_item.setProperty.assert_any_call(
+            'inputstream.adaptive.stream_selection_type', 'fixed-res')
 
 
 if __name__ == '__main__':
