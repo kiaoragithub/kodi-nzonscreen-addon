@@ -68,7 +68,7 @@ def show_page(path):
     data = nzos.page_links(path)
     for index, video in enumerate(data['videos']):
         label = video['label'] if len(data['videos']) > 1 else ('Play ' + (data['title'] or 'video'))
-        item(label, plugin_url('play', video_id=video['video_id']), False, True)
+        item(label, plugin_url('play', video_id=video['video_id'], clip_label=video['label']), False, True)
     for link in data['links']:
         action = classify(link['url'])
         if action == 'playpage':
@@ -85,12 +85,12 @@ def play_page(path):
     if not data['videos']:
         raise nzos.NZOSError('No playable video was found on this page.')
     if len(data['videos']) == 1:
-        play(data['videos'][0]['video_id'])
+        play(data['videos'][0]['video_id'], data['videos'][0]['label'])
         return
     labels = [x['label'] for x in data['videos']]
     selected = xbmcgui.Dialog().select(data['title'] or 'Choose video', labels)
     if selected >= 0:
-        play(data['videos'][selected]['video_id'])
+        play(data['videos'][selected]['video_id'], data['videos'][selected]['label'])
 
 
 def search_dialog():
@@ -145,7 +145,7 @@ def show_filters():
     xbmcplugin.endOfDirectory(HANDLE)
 
 
-def play(video_id):
+def play(video_id, clip_label=''):
     if not xbmc.getCondVisibility('System.HasAddon(inputstream.adaptive)'):
         if not xbmcgui.Dialog().yesno('InputStream Adaptive required',
                                       'NZ On Screen uses Widevine DASH. Install InputStream Adaptive now?'):
@@ -161,7 +161,10 @@ def play(video_id):
     li.setProperty('inputstream.adaptive.license_key', media['license'])
     li.setArt({'poster': media['poster'], 'thumb': media['poster']})
     tag = li.getVideoInfoTag()
-    tag.setTitle(media['title'])
+    title = media['title']
+    if clip_label and clip_label.casefold() != title.casefold():
+        title = title + ' — ' + clip_label
+    tag.setTitle(title)
     tag.setPlot(media['plot'])
     tag.setDuration(media['duration'])
     if media['subtitles']:
@@ -176,7 +179,7 @@ def run():
         if action == 'root': root()
         elif action == 'page': show_page(params.get('path', '/'))
         elif action == 'playpage': play_page(params['path'])
-        elif action == 'play': play(params['video_id'])
+        elif action == 'play': play(params['video_id'], params.get('clip_label', ''))
         elif action == 'search': search_dialog()
         elif action == 'filters': show_filters()
         elif action == 'results':

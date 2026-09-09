@@ -8,7 +8,7 @@ import urllib.request
 from html.parser import HTMLParser
 
 BASE = 'https://www.nzonscreen.com'
-UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.0.2'
+UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.0.3'
 
 
 class NZOSError(Exception):
@@ -119,10 +119,10 @@ def page_links(path):
         found.append({'label': label[:180], 'url': url, 'image': image})
         seen.add(url)
     return {'title': parser.title.replace('| NZ On Screen', '').strip(), 'links': found,
-            'videos': extract_videos(source)}
+            'videos': extract_videos(source, path)}
 
 
-def extract_videos(source):
+def extract_videos(source, page_path=''):
     # Next.js serialises the same fields with escaped quotes in its RSC payload.
     text = source.replace('\\"', '"')
     # account_id used to follow video_id, but NZ On Screen no longer includes it
@@ -130,16 +130,37 @@ def extract_videos(source):
     navigation = re.compile(
         r'"navigation":\{[^{}]*?"navigation_type":"(?:video|page)"[^{}]*?'
         r'"video_id":"?(\d+)"?[^{}]*?\}', re.S)
-    name = re.compile(r'"name":"([^"\\]*(?:\\.[^"\\]*)*)"')
     out, seen = [], set()
+    matches = list(navigation.finditer(text))
     previous = 0
-    for match in navigation.finditer(text):
+    for index, match in enumerate(matches):
         video_id = match.group(1)
         if video_id in seen:
             previous = match.end()
             continue
-        names = name.findall(text[previous:match.start()])
-        description = names[-1] if names else 'Play video'
+        before = text[previous:match.start()]
+        name_start = before.rfind('"name":"')
+        description = 'Play video'
+        if name_start >= 0:
+            name_start += len('"name":"')
+            name_ends = [position for position in
+                         (before.find('","genres"', name_start),
+                          before.find('","video_type"', name_start))
+                         if position >= 0]
+            if name_ends:
+                description = before[name_start:min(name_ends)]
+            else:
+                simple_names = re.findall(r'"name":"([^"\\]*(?:\\.[^"\\]*)*)"', before)
+                if simple_names:
+                    description = simple_names[-1]
+        description = description.replace('\\\\"', '\\"')
+
+        after_end = matches[index + 1].start() if index + 1 < len(matches) else len(text)
+        after = text[match.end():after_end]
+        parent = re.search(r'"parent_page":\{.*?"html_url":"([^"]+)"', after, re.S)
+        if page_path and parent and clean_url(parent.group(1)).rstrip('/') != clean_url(page_path).rstrip('/'):
+            previous = match.end()
+            continue
         try:
             description = json.loads('"' + description + '"')
         except Exception:
@@ -154,6 +175,19 @@ def extract_videos(source):
             if video_id not in seen:
                 out.append({'video_id': video_id, 'account_id': account_id, 'label': 'Play video'})
                 seen.add(video_id)
+    part_words = {'one': 1, 'two': 2, 'three': 3, 'four': 4, 'five': 5,
+                  'six': 6, 'seven': 7, 'eight': 8, 'nine': 9, 'ten': 10}
+    part_numbers = []
+    for entry in out:
+        found = re.search(r'\bpart\s+(\d+|%s)\b' % '|'.join(part_words), entry['label'].lower())
+        token = found.group(1) if found else ''
+        part_numbers.append(part_words[token] if token in part_words else
+                            (int(token) if token.isdigit() else 0))
+    if sum(number > 0 for number in part_numbers) >= 2:
+        indexed = list(enumerate(out))
+        indexed.sort(key=lambda pair: (0, part_numbers[pair[0]]) if part_numbers[pair[0]] else
+                     ((2, pair[0]) if 'credit' in pair[1]['label'].lower() else (1, pair[0])))
+        out = [entry for _, entry in indexed]
     return out
 
 
@@ -172,7 +206,7 @@ def filters():
 
 def playback(video_id):
     payload = {'eventType': 'play', 'platform': 'web', 'name': 'NZOS Kodi Add-on',
-               'appVersion': '1.0.2',
+               'appVersion': '1.0.3',
                'device': {'deviceId': 'Kodi', 'deviceType': 'tv', 'userAgent': UA}}
     raw, _ = request('/api/v3/user/playback/' + str(video_id), payload)
     result = json.loads(raw.decode('utf-8'))
