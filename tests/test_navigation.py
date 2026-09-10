@@ -26,9 +26,11 @@ class SearchNavigationTests(unittest.TestCase):
         addon_settings.getAddonInfo.return_value = '/tmp/plugin.video.nzonscreen/'
         addon_settings.getSetting.return_value = 'false'
         xbmcaddon.Addon = MagicMock(return_value=addon_settings)
+        self.addon_settings = addon_settings
 
         xbmcgui = types.ModuleType('xbmcgui')
         xbmcgui.INPUT_ALPHANUM = 0
+        xbmcgui.NOTIFICATION_INFO = 1
         dialog = MagicMock()
         dialog.input.return_value = 'Howard Morrison'
         self.dialog = dialog
@@ -37,7 +39,10 @@ class SearchNavigationTests(unittest.TestCase):
         xbmcgui.Window = MagicMock()
 
         xbmcplugin = types.ModuleType('xbmcplugin')
+        xbmcplugin.addDirectoryItem = MagicMock()
         xbmcplugin.endOfDirectory = MagicMock()
+        xbmcplugin.setContent = MagicMock()
+        xbmcplugin.setPluginCategory = MagicMock()
         xbmcplugin.setResolvedUrl = MagicMock()
 
         xbmcvfs = types.ModuleType('xbmcvfs')
@@ -66,6 +71,75 @@ class SearchNavigationTests(unittest.TestCase):
 
         self.addon.show_search.assert_called_once_with('Howard Morrison', 1)
         self.xbmc.executebuiltin.assert_not_called()
+
+    def test_catalogue_folders_use_paginated_search_api(self):
+        self.addon.root()
+
+        urls = [call.args[1] for call in sys.modules['xbmcplugin'].addDirectoryItem.call_args_list]
+        self.assertIn(
+            'plugin://plugin.video.nzonscreen?category=Series&sort=-last_published_at&action=results',
+            urls,
+        )
+        self.assertIn(
+            'plugin://plugin.video.nzonscreen?category=Music+video&sort=-last_published_at&action=results',
+            urls,
+        )
+        self.assertIn(
+            'plugin://plugin.video.nzonscreen?category=Profile&sort=title&action=results',
+            urls,
+        )
+
+    def test_current_search_media_type_enables_watchlist_action(self):
+        self.addon.search_result_to_item({
+            'id': 39644,
+            'title': 'Scared Old Men',
+            'html_url': 'https://www.nzonscreen.com/all-music-videos/scared-old-men-2025/',
+            'media_type_category': 'Music video',
+        })
+
+        list_item = sys.modules['xbmcgui'].ListItem.return_value
+        context = list_item.addContextMenuItems.call_args.args[0]
+        self.assertEqual(context[0][0], 'Add to NZ On Screen watchlist')
+        self.assertIn('item_type=Music+video', context[0][1])
+
+    def test_search_pagination_preserves_query_and_filters(self):
+        self.addon.nzos.search = MagicMock(return_value={
+            'results': [],
+            'pagination': {'page_number': 1, 'page_size': 20, 'total_count': 41},
+        })
+
+        self.addon.show_search('Howard', 1, 'Television', '49', '1980', '-last_published_at')
+
+        url = sys.modules['xbmcplugin'].addDirectoryItem.call_args.args[1]
+        self.assertIn('query=Howard', url)
+        self.assertIn('page=2', url)
+        self.assertIn('category=Television', url)
+        self.assertIn('genre=49', url)
+        self.assertIn('decade=1980', url)
+        self.assertIn('sort=-last_published_at', url)
+
+    def test_login_can_save_password_when_user_explicitly_agrees(self):
+        self.dialog.input.side_effect = ['viewer@example.com', 'secret']
+        self.dialog.yesno.return_value = True
+        self.addon.nzos.login = MagicMock()
+
+        self.addon.login_dialog()
+
+        self.addon.nzos.login.assert_called_once_with('viewer@example.com', 'secret')
+        self.addon_settings.setSetting.assert_any_call('save_password', 'true')
+        self.addon_settings.setSetting.assert_any_call('account_email', 'viewer@example.com')
+        self.addon_settings.setSetting.assert_any_call('account_password', 'secret')
+
+    def test_login_clears_password_when_user_does_not_save(self):
+        self.dialog.input.side_effect = ['viewer@example.com', 'secret']
+        self.dialog.yesno.return_value = False
+        self.addon.nzos.login = MagicMock()
+
+        self.addon.login_dialog()
+
+        self.addon_settings.setSetting.assert_any_call('save_password', 'false')
+        self.addon_settings.setSetting.assert_any_call('account_email', '')
+        self.addon_settings.setSetting.assert_any_call('account_password', '')
 
     def test_play_all_queues_every_clip_in_order(self):
         videos = [

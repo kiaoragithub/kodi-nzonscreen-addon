@@ -3,7 +3,7 @@
 [![Kodi 21 Omega](https://img.shields.io/badge/Kodi-21%20Omega-17B2E7)](https://kodi.tv/)
 [![Python 3](https://img.shields.io/badge/Python-3-3776AB)](https://www.python.org/)
 [![Tests](https://github.com/kiaoragithub/kodi-nzonscreen-addon/actions/workflows/validate.yml/badge.svg)](https://github.com/kiaoragithub/kodi-nzonscreen-addon/actions/workflows/validate.yml)
-[![Version](https://img.shields.io/badge/version-1.1.1-brightgreen)](https://github.com/kiaoragithub/kodi-nzonscreen-addon)
+[![Version](https://img.shields.io/badge/version-1.1.2-brightgreen)](https://github.com/kiaoragithub/kodi-nzonscreen-addon)
 
 ![NZ On Screen for Kodi](resources/fanart.png)
 
@@ -16,7 +16,8 @@ An unofficial Kodi video add-on for browsing and playing the public catalogue at
 
 ## Features
 
-- Browse television, film, series, music videos, collections, interviews, profiles and NZOS+
+- Browse television, film, series, music videos, music artists, commercials, short films,
+  web productions, collections, interview collections, profiles and NZOS+
 - Search by live NZ On Screen categories, genres and decades
 - Open first-level and deeper nested website pages
 - Play single videos and correctly ordered multi-part programmes
@@ -39,7 +40,7 @@ Installing through the repository allows Kodi to receive future add-on updates a
 
 ## Direct installation
 
-Download [`NZ-On-Screen-Kodi-1.1.1.zip`](https://github.com/kiaoragithub/kodi-nzonscreen-addon/raw/main/NZ-On-Screen-Kodi-1.1.1.zip),
+Download [`NZ-On-Screen-Kodi-1.1.2.zip`](https://github.com/kiaoragithub/kodi-nzonscreen-addon/raw/main/NZ-On-Screen-Kodi-1.1.2.zip),
 then select **Settings → Add-ons → Install from zip file** in Kodi. Direct installation works,
 but installing the repository first is recommended for automatic updates.
 
@@ -81,7 +82,7 @@ for release history.
 ## Project links
 
 - [Install using the NZ On Screen repository](https://kiaoragithub.github.io/kodi-nzonscreen-addon/)
-- [Download the latest direct-install ZIP](https://github.com/kiaoragithub/kodi-nzonscreen-addon/raw/main/NZ-On-Screen-Kodi-1.1.1.zip)
+- [Download the latest direct-install ZIP](https://github.com/kiaoragithub/kodi-nzonscreen-addon/raw/main/NZ-On-Screen-Kodi-1.1.2.zip)
 - [Read the release history](CHANGELOG.md)
 - [Report a problem or request a feature](https://github.com/kiaoragithub/kodi-nzonscreen-addon/issues)
 - [View the source code](https://github.com/kiaoragithub/kodi-nzonscreen-addon)

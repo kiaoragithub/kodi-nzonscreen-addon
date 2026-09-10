@@ -39,6 +39,19 @@ class ExtractVideosTests(unittest.TestCase):
             [{'video_id': '111', 'label': 'Correct clip'}],
         )
 
+    def test_child_page_navigation_video_is_not_played_from_series_folder(self):
+        source = r'''{"title":"Episode one","media_type_category":"Television","navigation":{"navigation_type":"page","html_url":"https://www.nzonscreen.com/all-series/example/episode-one/","video_id":444}}'''
+
+        self.assertEqual(extract_videos(source, '/all-series/example/'), [])
+
+    def test_same_page_navigation_video_is_kept(self):
+        source = r'''{"name":"Full episode","video_type":"full","navigation":{"navigation_type":"page","html_url":"https://www.nzonscreen.com/videos/example/","video_id":555}}'''
+
+        self.assertEqual(
+            extract_videos(source, '/videos/example/'),
+            [{'video_id': '555', 'label': 'Full episode'}],
+        )
+
     def test_quoted_clip_name_is_decoded(self):
         source = r'''{"name":"The trailer for \\\"The Convert\\\"","video_type":"trailer","navigation":{"navigation_type":"page","video_id":333}}'''
 

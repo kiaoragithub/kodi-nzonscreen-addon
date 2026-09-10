@@ -10,7 +10,7 @@ import urllib.request
 from html.parser import HTMLParser
 
 BASE = 'https://www.nzonscreen.com'
-UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.1.1'
+UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.1.2'
 
 _cookies = None
 _opener = urllib.request.build_opener()
@@ -227,16 +227,28 @@ def extract_videos(source, page_path=''):
     # account_id used to follow video_id, but NZ On Screen no longer includes it
     # in current page payloads. Match the stable video navigation object instead.
     navigation = re.compile(
-        r'"navigation":\{[^{}]*?"navigation_type":"(?:video|page)"[^{}]*?'
-        r'"video_id":"?(\d+)"?[^{}]*?\}', re.S)
+        r'"navigation":\{(?P<body>[^{}]*?"navigation_type":"(?P<type>video|page)"'
+        r'[^{}]*?"video_id":"?(?P<id>\d+)"?[^{}]*?)\}', re.S)
     out, seen = [], set()
     matches = list(navigation.finditer(text))
     previous = 0
     for index, match in enumerate(matches):
-        video_id = match.group(1)
+        video_id = match.group('id')
         if video_id in seen:
             previous = match.end()
             continue
+        navigation_body = match.group('body')
+        target = re.search(r'"html_url":"([^"]+)"', navigation_body)
+        if page_path and match.group('type') == 'page' and target:
+            target_path = clean_url(target.group(1))
+            current_path = clean_url(page_path)
+            # Series and other catalogue pages embed child cards whose
+            # navigation objects also carry video IDs. They are links to a
+            # different page, not videos playable on the current page.
+            if (target_path and not target_path.startswith('/m/player/') and
+                    target_path.rstrip('/') != current_path.rstrip('/')):
+                previous = match.end()
+                continue
         before = text[previous:match.start()]
         name_start = before.rfind('"name":"')
         description = 'Play video'
@@ -305,7 +317,7 @@ def filters():
 
 def playback(video_id):
     payload = {'eventType': 'play', 'platform': 'web', 'name': 'NZOS Kodi Add-on',
-               'appVersion': '1.1.1',
+               'appVersion': '1.1.2',
                'device': {'deviceId': 'Kodi', 'deviceType': 'tv', 'userAgent': UA}}
     raw, _ = request('/api/v3/user/playback/' + str(video_id), payload)
     result = json.loads(raw.decode('utf-8'))

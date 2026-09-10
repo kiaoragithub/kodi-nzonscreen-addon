@@ -1,6 +1,7 @@
 import os
 import sys
 import urllib.parse
+from datetime import datetime
 
 import xbmc
 import xbmcaddon
@@ -16,15 +17,20 @@ ADDON = xbmcaddon.Addon()
 SESSION_FILE = os.path.join(xbmcvfs.translatePath(ADDON.getAddonInfo('profile')), 'session.cookies')
 
 ROOT = [
-    ('Featured & latest', '/'),
-    ('Television in NZ', '/television-in-nz/'),
-    ('Film in NZ', '/film-in-nz/'),
-    ('Series', '/all-series/'),
-    ('Music videos', '/all-music-videos/'),
-    ('Collections', '/collection/'),
-    ('Interviews', '/interviews/screentalk/'),
-    ('Profiles', '/profile/'),
-    ('NZOS+', '/nzos/'),
+    ('Featured & latest', 'page', {'path': '/'}),
+    ('Television in NZ', 'page', {'path': '/television-in-nz/'}),
+    ('Film in NZ', 'page', {'path': '/film-in-nz/'}),
+    ('Series', 'results', {'category': 'Series', 'sort': '-last_published_at'}),
+    ('Music videos', 'results', {'category': 'Music video', 'sort': '-last_published_at'}),
+    ('Music artists', 'results', {'category': 'Music artist', 'sort': 'title'}),
+    ('Collections', 'results', {'category': 'Collection', 'sort': '-last_published_at'}),
+    ('Interviews', 'results', {'category': 'Interview', 'sort': '-last_published_at'}),
+    ('Interview collections', 'results', {'category': 'Interview Group', 'sort': 'title'}),
+    ('Profiles', 'results', {'category': 'Profile', 'sort': 'title'}),
+    ('Commercials', 'results', {'category': 'Commercial', 'sort': '-last_published_at'}),
+    ('Short films', 'results', {'category': 'Short film', 'sort': '-last_published_at'}),
+    ('Web productions', 'results', {'category': 'Web', 'sort': '-last_published_at'}),
+    ('NZOS+', 'page', {'path': '/nzos/'}),
 ]
 
 
@@ -53,8 +59,8 @@ def root():
     item('Search', plugin_url('search'), True)
     item('My NZ On Screen account', plugin_url('account'), True)
     item('Browse by category, genre or decade', plugin_url('filters'), True)
-    for label, path in ROOT:
-        item(label, plugin_url('page', path=path), True)
+    for label, action, params in ROOT:
+        item(label, plugin_url(action, **params), True)
     xbmcplugin.setContent(HANDLE, 'videos')
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -228,7 +234,8 @@ def search_result_to_item(result):
     action = classify(path)
     context = None
     item_id = result.get('id') or result.get('itemId')
-    item_type = result.get('content_type') or result.get('itemType') or result.get('type')
+    item_type = (result.get('content_type') or result.get('itemType') or result.get('type')
+                 or result.get('media_type_category'))
     watchlist_id = result.get('_watchlist_id')
     if watchlist_id:
         context = [('Remove from NZ On Screen watchlist',
@@ -266,7 +273,7 @@ def show_filters():
     for x in data.get('genres', []):
         item('Genre: ' + x.get('display_name', str(x.get('id'))),
              plugin_url('results', genre=x.get('id', '')), True)
-    current = 10 * (2026 // 10)
+    current = 10 * (datetime.now().year // 10)
     for decade in range(current, 1909, -10):
         item('Decade: %ss' % decade, plugin_url('results', decade=decade), True)
     xbmcplugin.endOfDirectory(HANDLE)

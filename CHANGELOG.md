@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.2 — 2026-09-10
+
+- Populate Series, Music videos, Profiles and other catalogue folders through the live,
+  paginated NZ On Screen search API instead of client-rendered landing-page HTML.
+- Add direct folders for Music artists, Interview collections, Commercials, Short films and Web productions.
+- Recognize the current `media_type_category` search field so watchlist actions remain available.
+- Reject child-page navigation video IDs on series folders, preventing the wrong embedded video from appearing.
+- Generate decade filters from the current year instead of a hard-coded year.
+- Expand navigation, account preference, version consistency and package icon regression tests.
+
 ## 1.1.1 — 2026-09-09
 
 - Replace the installed add-on icon with the supplied green NZ On Screen artwork.
