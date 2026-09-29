@@ -10,7 +10,7 @@ import urllib.request
 from html.parser import HTMLParser
 
 BASE = 'https://www.nzonscreen.com'
-UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.1.2'
+UA = 'Mozilla/5.0 (Linux; Android TV) Kodi/21 NZOnScreen-Addon/1.1.3'
 
 _cookies = None
 _opener = urllib.request.build_opener()
@@ -239,6 +239,18 @@ def extract_videos(source, page_path=''):
             continue
         navigation_body = match.group('body')
         target = re.search(r'"html_url":"([^"]+)"', navigation_body)
+        # Series cards can navigate to the embedded player while their own
+        # html_url points to a different episode. They are not clips on this
+        # folder, even though navigation_type is "video".
+        if page_path and match.group('type') == 'video':
+            card_tail = text[match.end():match.end() + 350]
+            card_url = re.match(r'[^{}]*?"html_url":"([^"]+)"', card_tail)
+            if card_url:
+                card_path = clean_url(card_url.group(1))
+                if (card_path and not card_path.startswith('/m/player/') and
+                        card_path.rstrip('/') != clean_url(page_path).rstrip('/')):
+                    previous = match.end()
+                    continue
         if page_path and match.group('type') == 'page' and target:
             target_path = clean_url(target.group(1))
             current_path = clean_url(page_path)
@@ -317,7 +329,7 @@ def filters():
 
 def playback(video_id):
     payload = {'eventType': 'play', 'platform': 'web', 'name': 'NZOS Kodi Add-on',
-               'appVersion': '1.1.2',
+               'appVersion': '1.1.3',
                'device': {'deviceId': 'Kodi', 'deviceType': 'tv', 'userAgent': UA}}
     raw, _ = request('/api/v3/user/playback/' + str(video_id), payload)
     result = json.loads(raw.decode('utf-8'))

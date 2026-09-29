@@ -44,6 +44,11 @@ class ExtractVideosTests(unittest.TestCase):
 
         self.assertEqual(extract_videos(source, '/all-series/example/'), [])
 
+    def test_child_player_navigation_video_is_not_played_from_series_folder(self):
+        source = '''{"title":"Episode one","navigation":{"navigation_type":"video","html_url":"/m/player/episode-one","video_id":444},"multiple_videos":false,"html_url":"https://www.nzonscreen.com/all-series/example/episode-one/"},{"title":"Episode two","navigation":{"navigation_type":"video","html_url":"/m/player/episode-two","video_id":555},"html_url":"https://www.nzonscreen.com/all-series/example/episode-two/"}'''
+
+        self.assertEqual(extract_videos(source, '/all-series/example/'), [])
+
     def test_same_page_navigation_video_is_kept(self):
         source = r'''{"name":"Full episode","video_type":"full","navigation":{"navigation_type":"page","html_url":"https://www.nzonscreen.com/videos/example/","video_id":555}}'''
 

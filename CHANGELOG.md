@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.3 — 2026-09-29
+
+- Exclude episode-card player IDs from series folders when the card points to a different title page.
+- Preserve direct title playback and the existing parts, clips and credits selection.
+- Add a regression test for video-type episode cards seen on the live Country Calendar series page.
+
 ## 1.1.2 — 2026-09-10
 
 - Populate Series, Music videos, Profiles and other catalogue folders through the live,
