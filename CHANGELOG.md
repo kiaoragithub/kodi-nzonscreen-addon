@@ -1,5 +1,23 @@
 # Changelog
 
+## 1.1.4 — 2026-10-10
+
+- Browse real season folders and recover their episode lists from the public parent-series tree.
+- Paginate interview groups, and add live collection-theme and profile-role filters.
+- Route nested Search links, preserve repeated filters, and validate legacy redirects against their final page.
+- Read structured Next.js data without executing scripts; validate each clip's own parent and deduplicate IDs.
+- Order numbered episodes, numbered prefixes and ordinal programme parts naturally, with credits last.
+- Use the website title and exact clip label instead of technical provider filenames; distinguish rental clips from trailers.
+- Offer Play all parts inside multipart folders and complete cancelled/failed playback resolvers.
+- Refresh shared session cookies per request, save them atomically with private permissions, normalize watchlist types,
+  and prevent credentials/tokens from leaking through raw error messages.
+- Cache final progress, associate it with the actual NZOS stream, and avoid attributing other Kodi playback to NZOS.
+- Correct the account-settings link and Kodi 21 settings schema; retain explicit Save password Yes/No,
+  clear saved credentials on sign-out, and remove the unused availability toggle.
+- Correct source/support metadata and the release directory index; add reproducible release tooling.
+- Expand offline live-structure, navigation, account-contract, progress, security and package regression coverage.
+- Document the signed-out live audit and the remaining account/Kodi-device validation requirements.
+
 ## 1.1.3 — 2026-09-29
 
 - Exclude episode-card player IDs from series folders when the card points to a different title page.

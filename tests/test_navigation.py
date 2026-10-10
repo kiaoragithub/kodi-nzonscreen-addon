@@ -7,6 +7,8 @@ from unittest.mock import MagicMock
 
 class SearchNavigationTests(unittest.TestCase):
     def setUp(self):
+        from resources.lib import nzos
+        self.original_nzos = dict(nzos.__dict__)
         self.original_argv = sys.argv[:]
         self.original_modules = {name: sys.modules.get(name) for name in
                                  ('xbmc', 'xbmcaddon', 'xbmcgui', 'xbmcplugin', 'xbmcvfs')}
@@ -57,6 +59,9 @@ class SearchNavigationTests(unittest.TestCase):
         self.xbmc = xbmc
 
     def tearDown(self):
+        from resources.lib import nzos
+        for key, value in self.original_nzos.items():
+            setattr(nzos, key, value)
         sys.argv = self.original_argv
         sys.modules.pop('resources.lib.addon', None)
         for name, module in self.original_modules.items():

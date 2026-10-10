@@ -24,9 +24,11 @@ ROOT = [
     ('Music videos', 'results', {'category': 'Music video', 'sort': '-last_published_at'}),
     ('Music artists', 'results', {'category': 'Music artist', 'sort': 'title'}),
     ('Collections', 'results', {'category': 'Collection', 'sort': '-last_published_at'}),
+    ('Collection themes', 'collectionfilters', {}),
     ('Interviews', 'results', {'category': 'Interview', 'sort': '-last_published_at'}),
     ('Interview collections', 'results', {'category': 'Interview Group', 'sort': 'title'}),
     ('Profiles', 'results', {'category': 'Profile', 'sort': 'title'}),
+    ('Profiles by role', 'profilefilters', {}),
     ('Commercials', 'results', {'category': 'Commercial', 'sort': '-last_published_at'}),
     ('Short films', 'results', {'category': 'Short film', 'sort': '-last_published_at'}),
     ('Web productions', 'results', {'category': 'Web', 'sort': '-last_published_at'}),
@@ -68,7 +70,9 @@ def root():
 def account_menu():
     try:
         user = nzos.current_user()
-    except Exception:
+    except nzos.NZOSError as exc:
+        if exc.status != 401:
+            raise
         item('Sign in', plugin_url('login'), False)
         item('Create account on nzonscreen.com',
              plugin_url('website', url='https://www.nzonscreen.com/signup/'), False)
@@ -78,8 +82,8 @@ def account_menu():
     item('Signed in as ' + str(name), '', False)
     item('My watchlist', plugin_url('watchlist'), True)
     item('NZOS+ rentals and catalogue', plugin_url('page', path='/nzos/'), True)
-    item('Transaction history on nzonscreen.com',
-         plugin_url('website', url='https://www.nzonscreen.com/account/'), False)
+    item('Account settings on nzonscreen.com',
+         plugin_url('website', url='https://www.nzonscreen.com/settings/'), False)
     item('Sign out', plugin_url('logout'), False)
     xbmcplugin.endOfDirectory(HANDLE)
 
@@ -110,6 +114,9 @@ def login_dialog():
 
 def logout_account():
     nzos.logout()
+    ADDON.setSetting('save_password', 'false')
+    ADDON.setSetting('account_email', '')
+    ADDON.setSetting('account_password', '')
     xbmcgui.Dialog().notification('NZ On Screen', 'Signed out', xbmcgui.NOTIFICATION_INFO, 4000)
     xbmc.executebuiltin('Container.Refresh')
 
@@ -155,26 +162,70 @@ def website_notice(url):
                         'For security, complete this account or payment action in a browser:\n' + url)
 
 
-def classify(path):
+def classify(path, page_type=''):
+    if page_type in ('VideoPage', 'MusicPage', 'InterviewPage'):
+        return 'playpage'
+    if page_type:
+        return 'page'
     bits = [x for x in urllib.parse.urlsplit(path).path.split('/') if x]
     if not bits: return 'page'
-    if bits[0] == 'videos': return 'playpage'
-    if bits[0] == 'all-music-videos': return 'playpage'
-    if bits[0] == 'all-series' and len(bits) >= 3: return 'playpage'
+    if bits[0] == 'videos' and len(bits) >= 2: return 'playpage'
+    if bits[0] == 'all-music-videos' and len(bits) >= 2: return 'playpage'
+    if bits[0] == 'all-series' and len(bits) >= 3:
+        if len(bits) == 3 and bits[-1].startswith('season-'):
+            return 'page'
+        return 'playpage'
     return 'page'
+
+
+def link_route(path, page_type=''):
+    path = nzos.clean_url(path)
+    if not path:
+        return None
+    parsed = urllib.parse.urlsplit(path)
+    if parsed.path.rstrip('/') == '/search':
+        params = urllib.parse.parse_qs(parsed.query)
+        if not params:
+            return 'search', {}
+        def values(name):
+            return ','.join(params.get(name, []))
+        return 'results', {'query': values('s') or values('q'), 'genre': values('genres'),
+                           'decade': values('decades'), 'category': values('media_category'),
+                           'sort': values('sort')}
+    if parsed.path.rstrip('/') == '/profile':
+        return 'results', {'category': 'Profile', 'sort': 'title'}
+    if parsed.path.rstrip('/') == '/collection':
+        return 'results', {'category': 'Collection', 'sort': '-last_published_at'}
+    return classify(path, page_type), {'path': path}
+
+
+def video_label(video):
+    return video['label'] + (' [Rental entitlement required]' if video.get('is_rental') else '')
 
 
 def show_page(path):
     data = nzos.page_links(path)
+    if data.get('page_type') == 'InterviewLandingPage' and data.get('page_id'):
+        show_special('interview', str(data['page_id']))
+        return
+    if data.get('page_type') == 'ProfileListingPage':
+        show_search(category='Profile', sort='title')
+        return
+    if len(data['videos']) > 1:
+        item('Play all parts', plugin_url('playall', path=path), False)
     for index, video in enumerate(data['videos']):
-        label = video['label'] if len(data['videos']) > 1 else ('Play ' + (data['title'] or 'video'))
-        item(label, plugin_url('play', video_id=video['video_id'], clip_label=video['label']), False, True)
+        label = video_label(video) if len(data['videos']) > 1 else ('Play ' + video_label(video))
+        item(label, plugin_url('play', video_id=video['video_id'], clip_label=video['label'],
+                              page_title=data['title']), False, True)
     for link in data['links']:
-        action = classify(link['url'])
+        route = link_route(link['url'], link.get('page_type', ''))
+        if not route:
+            continue
+        action, params = route
         if action == 'playpage':
-            item(link['label'], plugin_url('playpage', path=link['url']), False, True, link['image'])
+            item(link['label'], plugin_url(action, **params), False, True, link['image'])
         else:
-            item(link['label'], plugin_url('page', path=link['url']), True, art=link['image'])
+            item(link['label'], plugin_url(action, **params), True, art=link['image'])
     xbmcplugin.setPluginCategory(HANDLE, data['title'])
     xbmcplugin.setContent(HANDLE, 'videos')
     xbmcplugin.endOfDirectory(HANDLE, cacheToDisc=True)
@@ -183,11 +234,11 @@ def show_page(path):
 def play_page(path):
     data = nzos.page_links(path)
     if not data['videos']:
-        raise nzos.NZOSError('No playable video was found on this page.')
+        raise nzos.NZOSError('No supported video is available on this page. It may be unavailable or use an external player; check nzonscreen.com.')
     if len(data['videos']) == 1:
-        play(data['videos'][0]['video_id'], data['videos'][0]['label'])
+        play(data['videos'][0]['video_id'], data['videos'][0]['label'], data['title'])
         return
-    labels = ['Play all parts'] + [x['label'] for x in data['videos']]
+    labels = ['Play all parts'] + [video_label(x) for x in data['videos']]
     selected = xbmcgui.Dialog().select(data['title'] or 'Choose video', labels)
     if selected == 0:
         # This page was opened as a playable item, so Kodi is currently waiting
@@ -198,14 +249,19 @@ def play_page(path):
         xbmc.executebuiltin('RunPlugin(%s)' % plugin_url('playall', path=path))
     elif selected > 0:
         video = data['videos'][selected - 1]
-        play(video['video_id'], video['label'])
+        play(video['video_id'], video['label'], data['title'])
+    else:
+        xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
 
 
-def play_all(videos):
+def play_all(videos, page_title=''):
     playlist = xbmc.PlayList(xbmc.PLAYLIST_VIDEO)
     playlist.clear()
     for video in videos:
-        url = plugin_url('play', video_id=video['video_id'], clip_label=video['label'])
+        params = {'video_id': video['video_id'], 'clip_label': video['label']}
+        if page_title:
+            params['page_title'] = page_title
+        url = plugin_url('play', **params)
         li = xbmcgui.ListItem(label=video['label'])
         li.setProperty('IsPlayable', 'true')
         playlist.add(url, li)
@@ -231,7 +287,10 @@ def search_result_to_item(result):
         if isinstance(image, dict): image = image.get('url') or image.get('src') or ''
     if image: image = urllib.parse.urljoin(nzos.BASE + '/', image)
     if not path: return
-    action = classify(path)
+    route = link_route(path, result.get('page_type', ''))
+    if not route:
+        return
+    action, route_params = route
     context = None
     item_id = result.get('id') or result.get('itemId')
     item_type = (result.get('content_type') or result.get('itemType') or result.get('type')
@@ -244,12 +303,14 @@ def search_result_to_item(result):
         context = [('Add to NZ On Screen watchlist',
                     'RunPlugin(%s)' % plugin_url('addwatchlist', item_id=item_id,
                                                   item_type=item_type))]
-    item(label, plugin_url(action, path=path), action == 'page', action == 'playpage', image,
+    item(label, plugin_url(action, **route_params), action != 'playpage', action == 'playpage', image,
          context=context)
 
 
 def show_search(query='', page=1, category='', genre='', decade='', sort=''):
-    data = nzos.search(query, page, [genre] if genre else None, [decade] if decade else None, category, sort)
+    data = nzos.search(query, page, genre.split(',') if genre else None,
+                       decade.split(',') if decade else None,
+                       category.split(',') if ',' in category else category, sort)
     for result in data.get('results', []):
         search_result_to_item(result)
     pagination = data.get('pagination') or {}
@@ -279,12 +340,38 @@ def show_filters():
     xbmcplugin.endOfDirectory(HANDLE)
 
 
-def play(video_id, clip_label=''):
+def show_special_filters(kind):
+    data = nzos.collection_filters() if kind == 'collection' else nzos.profile_filters()
+    for entry in data.get('themes' if kind == 'collection' else 'categories', []):
+        label = entry.get('display_name') or entry.get('label')
+        value = entry.get('id') or entry.get('value')
+        item(label, plugin_url('special', kind=kind, value=value), True)
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def show_special(kind, value, page=1):
+    handlers = {'collection': nzos.collection_search, 'profile': nzos.profile_search,
+                'interview': nzos.interview_search}
+    data = handlers[kind](value, page)
+    for result in data.get('results', []):
+        search_result_to_item(result)
+    pagination = data.get('pagination') or {}
+    size = int(pagination.get('page_size') or 20)
+    if page * size < int(pagination.get('total_count') or 0):
+        item('Next page', plugin_url('special', kind=kind, value=value, page=page + 1), True)
+    xbmcplugin.setContent(HANDLE, 'videos')
+    xbmcplugin.endOfDirectory(HANDLE)
+
+
+def play(video_id, clip_label='', page_title=''):
     if not xbmc.getCondVisibility('System.HasAddon(inputstream.adaptive)'):
         if not xbmcgui.Dialog().yesno('InputStream Adaptive required',
                                       'NZ On Screen uses Widevine DASH. Install InputStream Adaptive now?'):
+            xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
             return
         xbmc.executebuiltin('InstallAddon(inputstream.adaptive)', wait=True)
+        if not xbmc.getCondVisibility('System.HasAddon(inputstream.adaptive)'):
+            raise nzos.NZOSError('InputStream Adaptive could not be enabled. Install it from the Kodi repository and try again.')
     media = nzos.playback(video_id)
     li = xbmcgui.ListItem(path=media['manifest'])
     li.setContentLookup(False)
@@ -300,7 +387,7 @@ def play(video_id, clip_label=''):
     li.setProperty('inputstream.adaptive.license_key', media['license'])
     li.setArt({'poster': media['poster'], 'thumb': media['poster']})
     tag = li.getVideoInfoTag()
-    title = media['title']
+    title = page_title or media['title']
     if clip_label and clip_label.casefold() != title.casefold():
         title = title + ' — ' + clip_label
     tag.setTitle(title)
@@ -317,6 +404,7 @@ def play(video_id, clip_label=''):
     window = xbmcgui.Window(10000)
     window.setProperty('NZOS.VideoId', str(video_id))
     window.setProperty('NZOS.SessionId', media.get('session_id', ''))
+    window.setProperty('NZOS.Manifest', media['manifest'])
     if media['subtitles']:
         li.setSubtitles(media['subtitles'])
     xbmcplugin.setResolvedUrl(HANDLE, True, li)
@@ -324,6 +412,9 @@ def play(video_id, clip_label=''):
 
 def run():
     nzos.configure_session(SESSION_FILE)
+    if ADDON.getSetting('save_password') != 'true':
+        ADDON.setSetting('account_email', '')
+        ADDON.setSetting('account_password', '')
     params = dict(urllib.parse.parse_qsl(sys.argv[2][1:] if len(sys.argv) > 2 else ''))
     action = params.get('action', 'root')
     try:
@@ -335,17 +426,30 @@ def run():
         elif action == 'addwatchlist': change_my_list(params['item_id'], params.get('item_type', ''))
         elif action == 'removewatchlist': change_my_list(params['item_id'], remove=True)
         elif action == 'website': website_notice(params['url'])
-        elif action == 'page': show_page(params.get('path', '/'))
+        elif action == 'page':
+            path = params.get('path', '/')
+            route = link_route(path)
+            if route and route[0] == 'search': search_dialog()
+            elif route and route[0] == 'results': show_search(**route[1])
+            else: show_page(path)
         elif action == 'playpage': play_page(params['path'])
-        elif action == 'playall': play_all(nzos.page_links(params['path'])['videos'])
-        elif action == 'play': play(params['video_id'], params.get('clip_label', ''))
+        elif action == 'playall':
+            data = nzos.page_links(params['path'])
+            play_all(data['videos'], data['title'])
+        elif action == 'play': play(params['video_id'], params.get('clip_label', ''), params.get('page_title', ''))
         elif action == 'search': search_dialog()
         elif action == 'filters': show_filters()
+        elif action == 'collectionfilters': show_special_filters('collection')
+        elif action == 'profilefilters': show_special_filters('profile')
+        elif action == 'special': show_special(params['kind'], params['value'], int(params.get('page', 1)))
         elif action == 'results':
             show_search(params.get('query', ''), int(params.get('page', 1)), params.get('category', ''),
                         params.get('genre', ''), params.get('decade', ''), params.get('sort', ''))
     except Exception as exc:
         xbmc.log('NZ On Screen error: %s' % exc, xbmc.LOGERROR)
         xbmcgui.Dialog().notification('NZ On Screen', str(exc), xbmcgui.NOTIFICATION_ERROR, 7000)
-        if action != 'play': xbmcplugin.endOfDirectory(HANDLE, succeeded=False)
-        else: xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+        if action in ('play', 'playpage'):
+            xbmcplugin.setResolvedUrl(HANDLE, False, xbmcgui.ListItem())
+        elif action in ('root', 'account', 'watchlist', 'page', 'search', 'filters', 'results',
+                        'special', 'collectionfilters', 'profilefilters'):
+            xbmcplugin.endOfDirectory(HANDLE, succeeded=False)

@@ -2,3 +2,23 @@ msgid ""
 msgstr ""
 "Language: en_GB\n"
 "Content-Type: text/plain; charset=UTF-8\n"
+
+msgctxt "#32000"
+msgid "Account"
+msgstr ""
+
+msgctxt "#32001"
+msgid "Save NZ On Screen password on this device"
+msgstr ""
+
+msgctxt "#32002"
+msgid "Optional: the password is stored in Kodi's local settings, not encrypted. Choose No on shared devices. Turning this off clears saved credentials the next time the add-on is opened; signing out also clears them."
+msgstr ""
+
+msgctxt "#32003"
+msgid "Saved account email"
+msgstr ""
+
+msgctxt "#32004"
+msgid "Saved account password"
+msgstr ""
